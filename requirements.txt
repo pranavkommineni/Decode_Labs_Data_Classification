@@ -1,0 +1,6 @@
+# Project 2 – Data Classification Using AI
+scikit-learn>=1.4.0
+numpy>=1.26.0
+pandas>=2.2.0
+matplotlib>=3.8.0
+pytest>=7.4.0
