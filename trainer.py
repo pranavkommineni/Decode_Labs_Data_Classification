@@ -70,7 +70,16 @@ class Trainer:
     def cross_validate(self, X: np.ndarray, y: np.ndarray,
                        cv: int = 5, scoring: str = "accuracy") -> dict:
         self._check_not_fitted()
-        skf    = StratifiedKFold(n_splits=cv, shuffle=True, random_state=42)
+        n_splits = min(cv, len(y))
+
+        if n_splits < 2:
+            n_splits = 2
+
+        skf = StratifiedKFold(
+            n_splits=n_splits,
+            shuffle=True,
+            random_state=42
+        )
         scores = cross_val_score(self.model, X, y, cv=skf, scoring=scoring, n_jobs=-1)
         return {
             "cv_folds":   cv,

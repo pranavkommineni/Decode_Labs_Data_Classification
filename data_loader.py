@@ -8,12 +8,14 @@ Supports:
   - Custom CSV files
 """
 
+from operator import le
+
 import numpy as np
 import pandas as pd
 from sklearn.datasets import load_iris, load_wine, load_breast_cancer
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, LabelEncoder
-from typing import Tuple
+from typing import Counter, Tuple
 import logging
 
 logger = logging.getLogger(__name__)
@@ -57,21 +59,21 @@ class DataLoader:
     # ── Public API ──────────────────────────────────────────────────
 
     def load(self, source: str = "iris") -> "DataLoader":
-        """
-        Load a dataset.
-        source can be a built-in name ('iris', 'wine', 'breast_cancer')
-        or a file path ending in .csv.
-        """
         if source in BUILT_IN_DATASETS:
             self._load_sklearn(source)
         elif source.endswith(".csv"):
             self._load_csv(source)
         else:
-            raise ValueError(f"Unknown source '{source}'. Use {list(BUILT_IN_DATASETS)} or a .csv path.")
+            raise ValueError(
+                f"Unknown source '{source}'. Use {list(BUILT_IN_DATASETS)} or a .csv path."
+        )
 
-        logger.info("Loaded '%s': %d samples, %d features, %d classes",
-                    self.dataset_name, *self._raw_df.shape[:-1],
-                    len(self.target_names))
+        logger.info(
+            f"Loaded '{self.dataset_name}': "
+            f"{len(self._raw_df)} samples, "
+            f"{len(self.feature_names)} features, "
+            f"{len(self.target_names)} classes"
+            )
         return self
 
     def preprocess(self, scale: bool = True) -> "DataLoader":
@@ -80,11 +82,21 @@ class DataLoader:
         X = df.drop(columns=["target"]).values
         y = df["target"].values
 
+        from collections import Counter
+
+        class_counts = Counter(y)
+
+        if min(class_counts.values()) < 2:
+            stratify = None
+        else:
+            stratify = y
+
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
-            X, y,
-            test_size    = self.test_size,
-            random_state = self.random_state,
-            stratify     = y,
+            X,
+            y,
+            test_size=self.test_size,
+            random_state=self.random_state,
+            stratify=stratify,
         )
 
         if scale:
@@ -93,7 +105,9 @@ class DataLoader:
 
         logger.info("Split: train=%d, test=%d", len(self.y_train), len(self.y_test))
         return self
+    
 
+    
     def summary(self) -> dict:
         """Return a dict describing the dataset."""
         df = self._raw_df
@@ -120,7 +134,10 @@ class DataLoader:
         df["target"] = bunch.target
         self.dataset_name  = name
         self.feature_names = list(bunch.feature_names)
-        self.target_names  = list(bunch.target_names)
+        if hasattr(le, "classes_"):
+            self.target_names = list(le.classes_)
+        else:
+            self.target_names = sorted(pd.unique(self.y))
         self._raw_df = df
 
     def _load_csv(self, path: str):
@@ -130,13 +147,19 @@ class DataLoader:
             df = df.rename(columns={df.columns[-1]: "target"})
 
         # encode string targets
+        from sklearn.preprocessing import LabelEncoder
+
         if df["target"].dtype == object:
             le = LabelEncoder()
-            self.target_names = list(le.classes_)
+
             df["target"] = le.fit_transform(df["target"])
+
+            self.target_names = [str(c) for c in le.classes_]
+
         else:
-            uniq = sorted(df["target"].unique())
-            self.target_names = [str(u) for u in uniq]
+            self.target_names = [
+            str(x) for x in sorted(df["target"].unique())
+        ]
 
         self.dataset_name  = path.split("/")[-1].replace(".csv", "")
         self.feature_names = [c for c in df.columns if c != "target"]
