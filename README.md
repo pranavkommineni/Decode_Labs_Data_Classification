@@ -60,7 +60,7 @@ project2_data_classification/
 
 The Data Classification Pipeline is a Machine Learning-based system designed to automate the classification of structured datasets using multiple supervised learning algorithms. The project performs data preprocessing, feature scaling, model training, cross-validation, performance evaluation, and visualization of classification results.
 
-The objective of this project is to create a scalable and reusable classification framework capable of evaluating multiple machine learning models and identifying the best-performing classifier for a given dataset.
+The objective of this project is to create a scalable and reusable classification framework capable of evaluating multiple machine learning models and identifying the best-performing classifier for a given dataset.This evaluates the data sets and give a clear output for the given data sets.
 
 ---
 
